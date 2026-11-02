@@ -19,7 +19,7 @@ export const useVoiceInput = (): VoiceInputHook => {
   const [error, setError] = useState<string | null>(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
   const recognitionRef = useRef<any>(null);
-  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Check if Web Speech API is supported
   const isSupported = typeof window !== 'undefined' && 
