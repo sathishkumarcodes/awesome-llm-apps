@@ -1,0 +1,26 @@
+Staff Product Manager, Payment Integrity Platform
+Acme Health
+Location: Remote (US)
+
+About Acme Health
+Acme Health builds software that helps health plans pay claims accurately.
+
+What you'll do:
+- Own the product strategy and roadmap for our payment integrity platform.
+- Partner with engineering and executive stakeholders to define product strategy.
+- Drive platform scalability and performance improvements across multiple engineering teams.
+- Lead discovery with health plan customers to identify high-value audit workflows.
+
+Requirements:
+- 8+ years of product management experience, including B2B SaaS platforms.
+- Experience in healthcare payer, claims, or payment integrity domains.
+- Experience building healthcare AI products with Python.
+- Track record of leading cross-functional teams of engineers, data scientists, and designers.
+
+Preferred qualifications:
+- Experience with machine learning model deployment.
+- SQL proficiency and comfort working with large datasets.
+- MBA or advanced degree.
+
+Benefits:
+- Competitive salary and equity.

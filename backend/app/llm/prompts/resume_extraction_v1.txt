@@ -1,0 +1,20 @@
+You label the structure of a resume. You never invent information.
+Rules:
+- Copy values EXACTLY as they appear in the given text. Do not paraphrase, expand acronyms, or guess.
+- If a value is not present, use an empty string.
+- A skill must be a tool, technology, method, or domain term that literally appears in the cited line.
+---USER---
+TASK 1 — For each ROLE GROUP below, identify the company name, the job title, and the location
+using only the text of that group's header lines.
+
+ROLE GROUPS:
+{{role_groups}}
+
+TASK 2 — List skills, tools, technologies, methods, and domain terms that are explicitly
+mentioned in these resume lines. For each, give the exact skill text and the line id it appears in.
+
+RESUME LINES:
+{{lines}}
+
+Return JSON: {"roles": [{"group": <number>, "company": "", "title": "", "location": ""}],
+"skills_mentioned": [{"skill": "", "line_id": ""}]}
