@@ -16,7 +16,7 @@ from app.core.logging import get_logger
 from app.llm.provider import current_choice, pinned
 
 log = get_logger("tasks")
-_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="jobmatch-worker")
+_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="jobjury-worker")
 
 
 def submit(fn: Callable[..., None], *args) -> None:

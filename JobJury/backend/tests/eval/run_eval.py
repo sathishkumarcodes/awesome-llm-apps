@@ -23,7 +23,7 @@ import tempfile
 import time
 from pathlib import Path
 
-os.environ["DATA_DIR"] = tempfile.mkdtemp(prefix="jobmatch-eval-")
+os.environ["DATA_DIR"] = tempfile.mkdtemp(prefix="jobjury-eval-")
 
 RANK = {"not_demonstrated": 0, "partial": 1, "demonstrated": 2}
 HERE = Path(__file__).parent

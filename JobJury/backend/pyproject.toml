@@ -1,7 +1,7 @@
 [project]
-name = "jobmatchai-backend"
+name = "jobjury-backend"
 version = "0.1.0"
-description = "JobMatchAI: job fit intelligence and truth-preserving resume tailoring"
+description = "JobJury: job fit intelligence and truth-preserving resume tailoring"
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "fastapi>=0.115",

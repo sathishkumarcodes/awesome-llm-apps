@@ -13,7 +13,7 @@ export default function App() {
     <ModelProvider>
       <div className="app">
         <header className="topbar">
-          <NavLink to="/" className="brand">JobMatchAI</NavLink>
+          <NavLink to="/" className="brand">JobJury</NavLink>
           <nav aria-label="Main">
             <NavLink to="/" end>Analyses</NavLink>
             <NavLink to="/versions">Tailored resumes</NavLink>

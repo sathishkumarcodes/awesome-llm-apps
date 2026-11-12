@@ -9,7 +9,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-os.environ.setdefault("DATA_DIR", tempfile.mkdtemp(prefix="jobmatch-test-"))
+os.environ.setdefault("DATA_DIR", tempfile.mkdtemp(prefix="jobjury-test-"))
 
 import pytest
 

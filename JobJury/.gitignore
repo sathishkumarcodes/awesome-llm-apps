@@ -1,0 +1,27 @@
+# Local config and secrets
+.env
+.env.*
+!.env.example
+
+# Uploaded resumes, exports, database (personal data — never commit)
+var/
+backend/var/
+*.db
+*.sqlite
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Node
+node_modules/
+frontend/dist/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/

@@ -45,7 +45,7 @@ def _warm_embeddings() -> None:
         log.exception("embedding warm-up failed; it will load on first use")
 
 
-app = FastAPI(title="JobMatchAI", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="JobJury", version="0.1.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_settings().cors_origins,

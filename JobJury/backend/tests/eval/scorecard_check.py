@@ -19,7 +19,7 @@ import tempfile
 import time
 from pathlib import Path
 
-os.environ["DATA_DIR"] = tempfile.mkdtemp(prefix="jobmatch-sc-")
+os.environ["DATA_DIR"] = tempfile.mkdtemp(prefix="jobjury-sc-")
 HERE = Path(__file__).parent
 JDS = HERE.parent / "fixtures" / "jds"
 

@@ -17,4 +17,4 @@ def configure_logging() -> None:
 
 
 def get_logger(name: str) -> logging.Logger:
-    return logging.getLogger(f"jobmatchai.{name}")
+    return logging.getLogger(f"jobjury.{name}")

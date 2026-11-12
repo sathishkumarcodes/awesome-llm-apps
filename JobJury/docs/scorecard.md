@@ -1,6 +1,6 @@
 # Dynamic hiring scorecard
 
-For each job, JobMatchAI builds a focused scorecard of 8–12 hiring criteria from the job description, then evaluates a resume against it with cited evidence, separate recruiter and hiring-manager views, deterministic scores, and a recommendation. It is a structured, job-specific review, not a claim about the employer's real process, and scores are not interview probabilities.
+For each job, JobJury builds a focused scorecard of 8–12 hiring criteria from the job description, then evaluates a resume against it with cited evidence, separate recruiter and hiring-manager views, deterministic scores, and a recommendation. It is a structured, job-specific review, not a claim about the employer's real process, and scores are not interview probabilities.
 
 > The rules determine how to evaluate. The job description determines what matters. The candidate's evidence determines the assessment.
 

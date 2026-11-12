@@ -59,7 +59,7 @@ class Settings(BaseSettings):
 
     @property
     def resolved_database_url(self) -> str:
-        return self.database_url or f"sqlite:///{self.data_dir / 'jobmatchai.db'}"
+        return self.database_url or f"sqlite:///{self.data_dir / 'jobjury.db'}"
 
 
 @lru_cache
