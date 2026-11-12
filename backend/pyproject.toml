@@ -16,6 +16,8 @@ dependencies = [
     "python-dateutil>=2.9",
     "numpy>=1.26",
     "sentence-transformers>=3.0",
+    "anthropic>=2.8.0",
+    "openai>=3.49.0",
 ]
 
 [dependency-groups]

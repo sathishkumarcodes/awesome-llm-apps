@@ -1,0 +1,24 @@
+{
+  "name": "Sample resume × Senior PM, AI Platform (trap cases)",
+  "resume": "../../fixtures/sample_resume.docx",
+  "job": "../../fixtures/sample_job_ai_platform.txt",
+  "expect_job": { "seniority_level": "Senior PM", "min_years": 6.0, "work_mode": "hybrid" },
+  "labels": [
+    { "match": "6+ years of product management", "expect": ["demonstrated"], "note": "~10 yrs of PM roles" },
+    { "match": "agentic AI, LLM orchestration", "expect": ["not_demonstrated"], "note": "OR-list, none present" },
+    { "match": "SQL, Python, or Snowflake", "expect": ["demonstrated"], "note": "OR-list; SQL and Python present" },
+    { "match": "building APIs and data integrations", "expect": ["demonstrated", "partial"], "note": "Python/FastAPI APIs for data workflows" },
+    { "match": "Bachelor's degree", "expect": ["demonstrated", "partial"], "note": "M.S. Information Systems exceeds level; field related" },
+    { "match": "engineers, designers, and data scientists", "expect": ["partial"], "note": "AND-list; engineers only" },
+    { "match": "travel up to 25%", "expect": ["logistics"] },
+    { "match": "authorized to work", "expect": ["logistics"] },
+    { "match": "fintech, payments, or financial services", "expect": ["partial", "not_demonstrated"], "note": "healthcare payment integrity is adjacent" },
+    { "match": "PMP or CSPO", "expect": ["demonstrated"], "note": "CSPO listed" },
+    { "match": "A/B tests", "expect": ["partial", "demonstrated"], "note": "A/B Testing in skills only" },
+    { "match": "Kubernetes and Terraform", "expect": ["not_demonstrated"] },
+    { "match": "AI developer platform", "expect": ["partial", "not_demonstrated"], "note": "owns roadmaps, not AI/dev platform" },
+    { "match": "customer discovery with enterprise data teams", "expect": ["partial"], "note": "discovery with hospital admins" },
+    { "match": "success metrics", "expect": ["partial", "not_demonstrated"] },
+    { "match": "Partner with sales", "expect": ["partial", "demonstrated"], "note": "partnered with sales on strategy" }
+  ]
+}

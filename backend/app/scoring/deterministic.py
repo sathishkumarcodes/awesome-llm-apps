@@ -36,6 +36,11 @@ class RequirementCheck:
     years_met: bool | None = None
     degree_required: int | None = None
     degree_candidate: int | None = None
+    # Years in the area the requirement names (e.g. product management), from role titles.
+    area: str | None = None
+    area_years: float | None = None
+    area_years_met: bool | None = None
+    area_line_ids: list[str] = field(default_factory=list)
 
     def as_dict(self) -> dict[str, object]:
         return {k: v for k, v in self.__dict__.items() if v not in (None, [])}
@@ -72,8 +77,46 @@ class DeterministicFacts:
         return "; ".join(parts)
 
 
+# Requirement wording → role-title pattern that counts toward years in that area.
+_AREAS: list[tuple[str, re.Pattern[str], re.Pattern[str]]] = [
+    (
+        "product management",
+        re.compile(r"\bproduct (management|manager|leadership|owner)\b", re.I),
+        re.compile(r"\bproduct\b", re.I),
+    ),
+    (
+        "engineering",
+        re.compile(
+            r"\b(software|engineering) (experience|development)\b|\bas an? (software )?engineer",
+            re.I,
+        ),
+        re.compile(r"\b(engineer|developer)\b", re.I),
+    ),
+]
+
+
+def area_years(
+    req_text: str, profile: CandidateProfile | None
+) -> tuple[str | None, float | None, list[str]]:
+    """Years spent in roles matching the area a years-requirement names."""
+    if profile is None:
+        return None, None, []
+    for area, req_pat, title_pat in _AREAS:
+        if req_pat.search(req_text):
+            roles = [e for e in profile.experience if e.months and title_pat.search(e.title or "")]
+            if not roles:
+                return area, 0.0, []
+            ids = [i for e in roles for i in e.header_line_ids][:3]
+            return area, round(sum(e.months or 0 for e in roles) / 12, 1), ids
+    return None, None, []
+
+
 def check_requirement(
-    req: Requirement, resume_text: str, cand_years: float | None, cand_degree: int
+    req: Requirement,
+    resume_text: str,
+    cand_years: float | None,
+    cand_degree: int,
+    profile: CandidateProfile | None = None,
 ) -> RequirementCheck:
     chk = RequirementCheck(requirement_id=req.id)
     for skill in req.skills:
@@ -84,6 +127,9 @@ def check_requirement(
         chk.years_required = req.years
         chk.years_candidate = cand_years
         chk.years_met = None if cand_years is None else cand_years >= req.years
+        chk.area, chk.area_years, chk.area_line_ids = area_years(req.text, profile)
+        if chk.area_years is not None:
+            chk.area_years_met = chk.area_years >= req.years
     if req.category == "education" or degree_level(req.text):
         chk.degree_required = degree_level(req.text) or None
         chk.degree_candidate = cand_degree
@@ -96,7 +142,9 @@ def run(doc: ResumeDocument, profile: CandidateProfile, job: JobProfile) -> Dete
     cand_degree = max(
         [degree_level(f"{e.degree} {e.institution}") for e in profile.education] or [0]
     )
-    checks = {r.id: check_requirement(r, text, cand_years, cand_degree) for r in job.requirements}
+    checks = {
+        r.id: check_requirement(r, text, cand_years, cand_degree, profile) for r in job.requirements
+    }
     certs_found = [c for c in job.certifications if contains_term(text, c)]
     edu_req = max([degree_level(e) for e in job.education] or [0])
 

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.errors import AppError, NotFoundError
 from app.core.logging import get_logger
 from app.db.session import SessionLocal
+from app.llm.parallel import run_both
 from app.llm.provider import get_provider
 from app.models import MatchAnalysis
 from app.schemas.analysis import (
@@ -21,7 +22,7 @@ from app.schemas.profile import CandidateProfile
 from app.scoring import deterministic, evaluators, recommendation, requirements, seniority
 from app.scoring.evidence import EvidenceBuilder
 from app.scoring.semantic import SemanticIndex
-from app.services import job_service, resume_service, tasks
+from app.services import job_service, resume_service, scorecard_service, tasks
 
 log = get_logger("match")
 
@@ -77,19 +78,20 @@ def run_analysis(
     progress("Building semantic index")
     index = SemanticIndex(doc.lines)
 
-    progress("Assessing requirements against your resume")
-    assessments = requirements.assess(job, index, evb, facts)
+    progress("Assessing requirements and seniority")
+    # Seniority doesn't depend on the requirement verdicts, so both run together.
+    (assessments, logistics), sen = run_both(
+        lambda: requirements.assess(job, index, evb, facts),
+        lambda: seniority.assess(job, profile, lines_text, evb),
+    )
     explicit = [a for a in assessments if a.kind != "inferred"]
     inferred = [a for a in assessments if a.kind == "inferred"]
 
-    progress("Calibrating seniority")
-    sen = seniority.assess(job, profile, lines_text, evb)
-
-    progress("Simulating recruiter review")
-    rec_eval = evaluators.recruiter(job, cand, lines_text, explicit, facts, sen, evb)
-
-    progress("Simulating hiring manager review")
-    hm_eval = evaluators.hiring_manager(job, cand, lines_text, explicit, facts, sen, evb)
+    progress("Simulating recruiter and hiring manager reviews")
+    rec_eval, hm_eval = run_both(
+        lambda: evaluators.recruiter(job, cand, lines_text, explicit, facts, sen, evb),
+        lambda: evaluators.hiring_manager(job, cand, lines_text, explicit, facts, sen, evb),
+    )
 
     progress("Forming recommendation")
     inputs = recommendation.decision_inputs(rec_eval, hm_eval, explicit)
@@ -167,6 +169,7 @@ def run_analysis(
         seniority=sen,
         inferred_signals=inferred,
         gaps=gaps,
+        logistics=logistics,
         top_issue=top_issue,
     )
 
@@ -187,6 +190,13 @@ def _execute(match_id: str) -> None:
         doc = resume_service.load_document(m.resume)
         profile = resume_service.load_profile(m.resume)
         job = job_service.load_job_profile(m.job)
+        # The hiring scorecard comes from the job alone and is settled before the resume is read.
+        scorecard = None
+        try:
+            progress("Building the hiring scorecard from the job")
+            scorecard = scorecard_service.ensure_scorecard(db, m.job, progress)
+        except AppError as exc:
+            log.warning("scorecard unavailable for match %s: %s", match_id, exc.message[:120])
         try:
             result = run_analysis(doc, profile, job, progress)
         except AppError as exc:
@@ -209,6 +219,25 @@ def _execute(match_id: str) -> None:
         m.risks = [r.model_dump(mode="json") for r in result.rejection_risks]
         m.evidence = [e.model_dump(mode="json") for i in result.why_match for e in i.evidence]
         m.result = result.model_dump(mode="json")
+        if scorecard is not None:
+            try:
+                progress("Scoring against the hiring scorecard")
+                ev = scorecard_service.evaluate_now(
+                    db,
+                    scorecard,
+                    m.resume,
+                    match_id=m.id,
+                    assessments=result.requirements,
+                    progress=progress,
+                )
+                # The scorecard evaluation is the headline result; the original analysis stays
+                # available as the detailed evaluation.
+                m.recommendation = ev.recommendation
+                m.overall_score = ev.overall_fit
+                m.recruiter_score = ev.recruiter_score
+                m.hiring_manager_score = ev.hiring_manager_score
+            except AppError as exc:
+                log.warning("scorecard evaluation failed for match %s: %s", match_id, exc.message[:120])  # fmt: skip
         m.status, m.progress = "complete", "Complete"
         db.commit()
         log.info("analysis complete id=%s decision=%s", match_id, m.recommendation)
@@ -226,6 +255,18 @@ def create_match(db: Session, resume_id: str, job_id: str) -> MatchAnalysis:
         model_name=get_provider().model,
     )
     db.add(m)
+    db.commit()
+    tasks.submit(_execute, m.id)
+    return m
+
+
+def rerun_match(db: Session, match_id: str) -> MatchAnalysis:
+    """Queue a failed analysis again, on the model that is active now."""
+    m = get_match(db, match_id)
+    if m.status != "failed":
+        raise AppError("Only failed analyses can be rerun.")
+    m.status, m.progress, m.error = "pending", "Queued", None
+    m.model_name = get_provider().model
     db.commit()
     tasks.submit(_execute, m.id)
     return m

@@ -37,7 +37,7 @@ def load_prompt(name: str) -> tuple[str, str]:
     return name, path.read_text(encoding="utf-8")
 
 
-def render_prompt(name: str, **values: str) -> tuple[str, str, str]:
+def render_prompt(name: str, /, **values: str) -> tuple[str, str, str]:
     """Return (version, system, user) with ``{{key}}`` placeholders substituted."""
     version, text = load_prompt(name)
     system, _, user = text.partition("---USER---")
@@ -111,7 +111,7 @@ def call_structured(
                 ),
             ]
     raise LLMOutputError(
-        f"The local model returned invalid structured output for '{version}' after "
+        f"The model returned invalid structured output for '{version}' after "
         f"{attempts} attempts ({last_error}). Try again or use a larger model."
     )
 

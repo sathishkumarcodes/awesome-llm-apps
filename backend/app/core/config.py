@@ -24,7 +24,17 @@ class Settings(BaseSettings):
     # Qwen3 and other reasoning models can emit long "thinking" output; off by default for speed.
     ollama_think: bool = False
     ollama_num_ctx: int = 8192
+    # Concurrent requests sent to a local model (1 = sequential; laptops rarely benefit from more).
+    ollama_parallel: int = 1
     llm_max_retries: int = 2
+
+    # Hosted providers (optional). Selecting one in the UI sends resume/job text to that
+    # provider. The Anthropic SDK also picks up an `ant auth login` profile when this is empty.
+    anthropic_api_key: str = ""
+    openai_api_key: str = ""
+    cloud_timeout_seconds: float = 120.0
+    # Reasoning effort for hosted models: lower is faster.
+    cloud_effort: str = "low"
 
     # Embeddings (Layer 2 semantic matching)
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"

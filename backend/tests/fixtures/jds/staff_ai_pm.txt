@@ -1,0 +1,21 @@
+Staff Product Manager, AI
+Corvid Labs
+Location: San Francisco, CA (hybrid)
+
+Responsibilities:
+- Own the strategy and roadmap for our LLM-powered assistant.
+- Ship production AI features with ML and platform engineering.
+- Define evaluation criteria, guardrails and quality metrics for model outputs.
+- Drive adoption with enterprise customers and measure business outcomes.
+- Influence executives and lead product direction across multiple teams.
+
+Requirements:
+- 8+ years of product management experience, including 2+ years on AI or ML products.
+- Experience shipping LLM features to production.
+- Strong technical fluency: APIs, data pipelines, model evaluation.
+- Experience leading cross-functional teams of engineers and data scientists.
+- Bachelor's degree in a technical field or equivalent experience.
+
+Preferred qualifications:
+- Experience with retrieval-augmented generation or agents.
+- Background in enterprise SaaS.

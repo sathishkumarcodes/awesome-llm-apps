@@ -24,6 +24,8 @@ from app.schemas.analysis import MatchResult
 from app.schemas.document import DocLine, ResumeDocument
 from app.schemas.job import JobProfile
 from app.schemas.tailoring import Change, FactualityResult, TailoringMode
+from app.scorecards.schemas import EvaluationContent, ScorecardContent
+from app.scorecards.tailoring import TailoringTargets
 from app.scoring.semantic import SemanticIndex
 from app.services import factuality, job_service, resume_service, tasks
 from app.services.text_utils import norm
@@ -73,7 +75,9 @@ def initial_decision(status: str) -> str:
     return {"SUPPORTED": "accepted", "PARTIALLY_SUPPORTED": "pending"}.get(status, "rejected")
 
 
-def job_focus(job: JobProfile, result: MatchResult | None) -> str:
+def job_focus(
+    job: JobProfile, result: MatchResult | None, targets: TailoringTargets | None = None
+) -> str:
     parts = [f"Role: {job.title} at {job.company}".strip()]
     musts = job.by_kind("must_have")[:8]
     if musts:
@@ -81,7 +85,9 @@ def job_focus(job: JobProfile, result: MatchResult | None) -> str:
     resps = job.by_kind("responsibility")[:6]
     if resps:
         parts.append("Responsibilities:\n" + "\n".join(f"- {r.text}" for r in resps))
-    if result and result.improvements:
+    if targets and (scorecard := targets.focus_text()):
+        parts.append("HIRING SCORECARD FOR THIS JOB:\n" + scorecard)
+    elif result and result.improvements:
         parts.append(
             "Positioning advice from the analysis:\n"
             + "\n".join(f"- {i.action}" for i in result.improvements[:5])
@@ -89,7 +95,9 @@ def job_focus(job: JobProfile, result: MatchResult | None) -> str:
     return "\n\n".join(parts)
 
 
-def _job_queries(job: JobProfile) -> list[str]:
+def _job_queries(job: JobProfile, targets: TailoringTargets | None = None) -> list[str]:
+    if targets and targets.all:
+        return targets.queries()
     return [r.text for r in job.requirements if r.kind != "nice_to_have"][:25] or [job.title]
 
 
@@ -101,6 +109,7 @@ class Tailor:
         job_text: str,
         result: MatchResult | None,
         mode: str,
+        targets: TailoringTargets | None = None,
     ):
         self.doc = doc
         self.lines = doc.line_map()
@@ -108,12 +117,18 @@ class Tailor:
         self.job_text = job_text
         self.mode = MODES[mode]
         self.mode_name = mode
-        self.focus = job_focus(job, result)
+        self.targets = targets
+        self.hints = targets.line_hints() if targets else {}
+        self.focus = job_focus(job, result, targets)
         self.resume_text = doc.text
         self.changes: list[Change] = []
 
     def _next_id(self) -> str:
         return f"C{len(self.changes) + 1}"
+
+    def _unit_line(self, ln: DocLine) -> str:
+        hint = self.hints.get(ln.id)
+        return f"{ln.id}: {ln.text}" + (f"   [evidence for: {'; '.join(hint)}]" if hint else "")
 
     # LLM rewrites -----------------------------------------------------------
     def rewrite_unit(
@@ -136,7 +151,7 @@ class Tailor:
                 mode_rules=self.mode.rules,
                 job=self.focus,
                 unit_label=label,
-                unit_lines="\n".join(f"{ln.id}: {ln.text}" for ln in unit),
+                unit_lines="\n".join(self._unit_line(ln) for ln in unit),
                 support_lines="\n".join(f"{ln.id}: {ln.text}" for ln in support) or "(none)",
                 temperature=0.3,
             )
@@ -181,7 +196,7 @@ class Tailor:
     ) -> None:
         if len(bullets) < 3:
             return
-        scores = index.relevance([b.text for b in bullets], _job_queries(self.job))
+        scores = index.relevance([b.text for b in bullets], _job_queries(self.job, self.targets))
         order = sorted(range(len(bullets)), key=lambda i: -scores[i])
         # Only propose when the most relevant bullet is meaningfully more relevant than the current lead.
         if order[0] == 0 or scores[order[0]] - scores[0] < 0.05:
@@ -223,7 +238,7 @@ class Tailor:
             return
         items = [i.strip() for i in body.split(sep) if i.strip()]
         jd = self.job_text.lower()
-        rel = index.relevance(items, _job_queries(self.job))
+        rel = index.relevance(items, _job_queries(self.job, self.targets))
         order = sorted(range(len(items)), key=lambda i: (items[i].lower() not in jd, -rel[i]))
         new_items = [items[i] for i in order]
         if new_items == items:
@@ -297,6 +312,11 @@ class Tailor:
             if self.mode.reorder_skills:
                 for ln in skills:
                     self.reorder_skills(ln, index)
+        if self.targets:
+            for c in self.changes:
+                c.target_criterion_ids = self.targets.criteria_for(
+                    [*c.target_line_ids, *c.supporting_line_ids], c.proposed
+                )
         return self.changes
 
 
@@ -340,12 +360,16 @@ def _execute(version_id: str) -> None:
         doc = resume_service.load_document(v.original_resume)
         job = job_service.load_job_profile(v.job)
         result = None
+        targets = None
         if v.match_id:
             m = db.get(MatchAnalysis, v.match_id)
             if m and m.result:
                 result = MatchResult.model_validate(m.result)
+            targets = _scorecard_targets(db, v.match_id)
         try:
-            changes = Tailor(doc, job, v.job.description, result, v.tailoring_mode).run(progress)
+            changes = Tailor(doc, job, v.job.description, result, v.tailoring_mode, targets).run(
+                progress
+            )
         except Exception as exc:
             log.exception("tailoring failed id=%s", version_id)
             v.status, v.progress = "failed", "Failed"
@@ -364,6 +388,18 @@ def _execute(version_id: str) -> None:
         log.info("tailoring complete id=%s changes=%d", version_id, len(changes))
     finally:
         db.close()
+
+
+def _scorecard_targets(db: Session, match_id: str) -> TailoringTargets | None:
+    from app.services.scorecard_service import evaluation_for_match
+
+    ev = evaluation_for_match(db, match_id)
+    if not ev or not ev.content or not ev.scorecard.content:
+        return None
+    return TailoringTargets.build(
+        ScorecardContent.model_validate(ev.scorecard.content),
+        EvaluationContent.model_validate(ev.content),
+    )
 
 
 def render_content(doc: ResumeDocument, changes: list[Change]) -> dict:
@@ -407,6 +443,17 @@ def create_version(
         prompt_versions={"tailoring": PROMPT, "factuality": factuality.PROMPT},
     )
     db.add(v)
+    db.commit()
+    tasks.submit(_execute, v.id)
+    return v
+
+
+def rerun_version(db: Session, version_id: str) -> ResumeVersion:
+    """Queue a failed tailoring run again, on the model that is active now."""
+    v = get_version(db, version_id)
+    if v.status != "failed":
+        raise AppError("Only failed tailoring runs can be rerun.")
+    v.status, v.progress, v.error = "pending", "Queued", None
     db.commit()
     tasks.submit(_execute, v.id)
     return v

@@ -15,6 +15,7 @@ DECISION_LABELS: dict[str, str] = {
     "APPLY_TAILOR_FIRST": "APPLY — TAILOR FIRST",
     "BORDERLINE": "BORDERLINE",
     "PROBABLY_SKIP": "PROBABLY SKIP",
+    "NEEDS_CLARIFICATION": "NEEDS CLARIFICATION",
 }
 
 NOT_DEMONSTRATED = "Not demonstrated in the resume."
@@ -128,6 +129,8 @@ class MatchResult(BaseModel):
     seniority: SeniorityAssessment
     inferred_signals: list[RequirementAssessment]
     gaps: list[str]
+    # Conditions a resume can't show (travel, office days, work authorization); not scored.
+    logistics: list[str] = Field(default_factory=list)
     top_issue: str = ""
     disclaimer: str = (
         "Likely assessment based only on the evidence in your resume. It is not a prediction "

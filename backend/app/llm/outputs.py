@@ -88,6 +88,13 @@ class AssessmentOut(BaseModel):
     evidence: list[EvidenceRef] = Field(default_factory=list)
 
 
+class SingleAssessmentOut(BaseModel):
+    status: Literal["demonstrated", "partial", "not_demonstrated"]
+    support: Literal["confirmed", "potentially_transferable", "not_demonstrated"]
+    rationale: str
+    evidence: list[EvidenceRef] = Field(default_factory=list)
+
+
 class AssessmentBatchOut(BaseModel):
     assessments: list[AssessmentOut] = Field(default_factory=list)
 
@@ -176,3 +183,52 @@ class FactualityOut(BaseModel):
     status: Literal["SUPPORTED", "PARTIALLY_SUPPORTED", "UNSUPPORTED"]
     unsupported_claims: list[str] = Field(default_factory=list)
     explanation: str = ""
+
+
+# Scorecard generation
+class CriterionDraftOut(BaseModel):
+    name: str
+    description: str = ""
+    category: str = "other"
+    source_requirement_ids: list[str] = Field(default_factory=list)
+    importance: Literal["critical", "high", "medium", "low"] = "medium"
+    evaluation_owner: Literal["recruiter", "hiring_manager", "both"] = "both"
+    rationale: str = ""
+
+
+class ScorecardDraftOut(BaseModel):
+    role_family: str = ""
+    summary: str = ""
+    criteria: list[CriterionDraftOut] = Field(default_factory=list)
+
+
+class RubricOut(BaseModel):
+    level_5: str
+    level_4: str
+    level_3: str
+    level_2: str
+    level_1: str
+    recruiter_guidance: str = ""
+    hiring_manager_guidance: str = ""
+
+
+class CriterionEvalOut(BaseModel):
+    classification: Literal[
+        "directly_demonstrated",
+        "strong_equivalent",
+        "transferable",
+        "weakly_demonstrated",
+        "not_demonstrated",
+        "confirmed_absent",
+        "unknown",
+    ]
+    level: Literal["5", "4", "3", "2", "1", "0", "unknown"]
+    hiring_manager_level: Literal["5", "4", "3", "2", "1", "0", "unknown"] = "unknown"
+    evidence: list[EvidenceRef] = Field(default_factory=list)
+    gaps: list[str] = Field(default_factory=list)
+    reasoning: str = ""
+    recruiter_note: str = ""
+    hiring_manager_note: str = ""
+    gap_type: Literal["none", "qualification", "evidence", "positioning", "ats"] = "none"
+    improvement: str = ""
+    clarification_question: str = ""

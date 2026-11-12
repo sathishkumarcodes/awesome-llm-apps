@@ -14,6 +14,8 @@ from app.parsing.job_parser import (
     deterministic_location,
     deterministic_work_mode,
     deterministic_years,
+    guess_category,
+    level_from_title,
     line_kind,
     split_lines,
 )
@@ -65,12 +67,17 @@ def parse_job(description: str, company: str = "", title: str = "") -> JobProfil
             if str(int(ol.years)) in ln.text:
                 years = ol.years
         skills = [s for s in (ol.skills if ol else []) if s and contains_term(ln.text, s)]
+        category = (
+            ol.category
+            if ol and ol.category != "other"
+            else ("experience" if years else guess_category(ln.text))
+        )
         reqs.append(
             Requirement(
                 id=f"R{len(reqs) + 1}",
                 text=ln.text,
                 kind=kind,  # type: ignore[arg-type]
-                category=(ol.category if ol else ("experience" if years else "other")),
+                category=category,  # type: ignore[arg-type]
                 years=years,
                 skills=list(dict.fromkeys(skills)),
                 source_heading=ln.heading,
@@ -94,11 +101,13 @@ def parse_job(description: str, company: str = "", title: str = "") -> JobProfil
         profile.seniority_level = llm.seniority_level
         profile.education = [e for e in llm.education if e][:5]
         profile.certifications = [c for c in llm.certifications if c and substring_of(c, jd)][:5]
-    if not profile.seniority_level:
-        profile.seniority_level = _level_from_title(profile.title)
     if not profile.title:
         first = lines[0].text
         profile.title = first if len(first) <= 80 else ""
+    # The title states the level explicitly ("Staff", "Senior"); trust it over the model.
+    title_level = level_from_title(profile.title)
+    if (title_level and title_level != "PM") or not profile.seniority_level:
+        profile.seniority_level = title_level
     must_years = [r.years for r in reqs if r.years and r.kind == "must_have"]
     profile.min_years = max(must_years) if must_years else None
 
@@ -112,21 +121,6 @@ def parse_job(description: str, company: str = "", title: str = "") -> JobProfil
             "No explicit qualification section was detected; requirements may be incomplete."
         )
     return profile
-
-
-def _level_from_title(title: str) -> str:
-    t = title.lower()
-    if "director" in t or "head of" in t or "vp" in t:
-        return "Director"
-    if "principal" in t:
-        return "Principal PM"
-    if "staff" in t or "lead" in t or "group" in t:
-        return "Staff PM"
-    if "senior" in t or "sr" in t:
-        return "Senior PM"
-    if "product manager" in t:
-        return "PM"
-    return ""
 
 
 def infer_signals(profile: JobProfile) -> list[InferredSignal]:
@@ -169,6 +163,18 @@ def create_job(db: Session, description: str, company: str = "", title: str = ""
     db.add(job)
     db.commit()
     log.info("job created id=%s requirements=%d", job.id, len(profile.requirements))
+    return job
+
+
+def reparse_job(db: Session, job_id: str) -> Job:
+    """Parse a saved job again (e.g. after AI parsing failed), with the model active now."""
+    job = get_job(db, job_id)
+    profile = parse_job(job.description, job.company, job.title)
+    job.company, job.title = profile.company, profile.title
+    job.parsed_profile = profile.model_dump(mode="json")
+    job.prompt_version = f"{EXTRACT_PROMPT},{HIDDEN_PROMPT}" if profile.llm_enriched else None
+    db.commit()
+    log.info("job reparsed id=%s requirements=%d", job.id, len(profile.requirements))
     return job
 
 

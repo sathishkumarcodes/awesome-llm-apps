@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
 TailoringMode = Literal["minimal", "recommended", "aggressive"]
 FactualityStatus = Literal["SUPPORTED", "PARTIALLY_SUPPORTED", "UNSUPPORTED"]
@@ -48,3 +48,10 @@ class Change(BaseModel):
     user_edited: bool = False
     # reorder only: the new order of line ids
     new_order: list[str] = Field(default_factory=list)
+    # Scorecard criteria this change makes more visible (empty when there's no scorecard).
+    target_criterion_ids: list[str] = Field(default_factory=list)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def requires_user_review(self) -> bool:
+        return self.decision == "pending"

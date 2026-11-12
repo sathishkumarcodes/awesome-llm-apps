@@ -79,6 +79,71 @@ class MatchAnalysis(Base):
     job: Mapped[Job] = relationship()
 
 
+class Scorecard(Base):
+    """Job-specific hiring criteria, generated from the job description only. Versioned:
+    regenerating creates a new version; evaluations keep pointing at the version they used."""
+
+    __tablename__ = "scorecards"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    job_id: Mapped[str] = mapped_column(ForeignKey("jobs.id", ondelete="CASCADE"), index=True)
+    version: Mapped[int] = mapped_column(default=1)
+    status: Mapped[str] = mapped_column(String(16), default="pending")
+    progress: Mapped[str] = mapped_column(String(128), default="Queued")
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    content: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    model_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    prompt_versions: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+    job: Mapped[Job] = relationship()
+
+
+class ScorecardEvaluation(Base):
+    """One resume evaluated against one scorecard version."""
+
+    __tablename__ = "scorecard_evaluations"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    scorecard_id: Mapped[str] = mapped_column(ForeignKey("scorecards.id", ondelete="CASCADE"))
+    resume_id: Mapped[str] = mapped_column(ForeignKey("resumes.id", ondelete="CASCADE"))
+    match_id: Mapped[str | None] = mapped_column(
+        ForeignKey("match_analyses.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    status: Mapped[str] = mapped_column(String(16), default="pending")
+    progress: Mapped[str] = mapped_column(String(128), default="Queued")
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    content: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    overall_fit: Mapped[float | None] = mapped_column(Float, nullable=True)
+    recruiter_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    hiring_manager_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    ats_readiness: Mapped[float | None] = mapped_column(Float, nullable=True)
+    recommendation: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    model_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    prompt_versions: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+    scorecard: Mapped[Scorecard] = relationship()
+    resume: Mapped[Resume] = relationship()
+
+
+class Clarification(Base):
+    """A candidate's answer to a clarification question. Kept apart from the resume: it is
+    shown and scored as candidate-provided information, never written into the resume."""
+
+    __tablename__ = "clarifications"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    resume_id: Mapped[str] = mapped_column(ForeignKey("resumes.id", ondelete="CASCADE"))
+    scorecard_id: Mapped[str] = mapped_column(ForeignKey("scorecards.id", ondelete="CASCADE"))
+    criterion_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    constraint_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    question: Mapped[str] = mapped_column(Text)
+    answer: Mapped[str] = mapped_column(Text)
+    answer_kind: Mapped[str] = mapped_column(String(8))  # yes | no | detail
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
 class ResumeVersion(Base):
     __tablename__ = "resume_versions"
 

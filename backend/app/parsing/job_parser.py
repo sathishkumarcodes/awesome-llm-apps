@@ -180,3 +180,63 @@ def line_kind(line: JdLine) -> str:
     if MUST_CUE.search(line.text) or deterministic_years(line.text):
         return "must_have"
     return "unknown"
+
+
+# --- requirement helpers used when the model is unavailable or as guardrails -----------------
+_LOGISTICS_RE = re.compile(
+    r"\b(travel|relocat\w*|commut\w*|work (?:from|in) (?:our|the) .*office|in[- ]office|on[- ]?site"
+    r"|hybrid|days? (?:a|per) week|authori[sz]ed to work|work authori[sz]ation|visa|sponsorship"
+    r"|background check|drug (?:test|screen)|driver'?s licen[cs]e|lift \d+|shift|weekends?"
+    r"|overtime|on[- ]call)\b",
+    re.I,
+)
+_EXPERIENCE_HINT = re.compile(r"\b(experience|track record|background|proven|years?)\b", re.I)
+
+
+def is_logistics(text: str) -> bool:
+    """True for conditions a resume can't show (travel, office days, work authorization...).
+
+    Lines that are mainly about experience ("experience working in a hybrid team") are kept."""
+    if not _LOGISTICS_RE.search(text):
+        return False
+    return not _EXPERIENCE_HINT.search(text) or bool(
+        re.search(r"\b(authori[sz]ed|sponsorship|visa|travel)\b", text, re.I)
+    )
+
+
+_CATEGORY_KEYWORDS: list[tuple[str, tuple[str, ...]]] = [
+    ("education", ("degree", "bachelor", "master", "mba", "phd", "university")),
+    ("certification", ("certification", "certified", "certificate", "pmp", "cspo", "cspm")),
+    ("leadership", ("lead ", "leading", "mentor", "manage a team", "managing", "cross-functional", "people manager")),
+    ("stakeholder", ("stakeholder", "executive", "partner with", "collaborat", "influence")),
+    ("customer", ("customer", "client", "user research", "discovery", "interview")),
+    ("technical", ("sql", "python", "api", "machine learning", " ml ", "data ", "cloud", "aws", "llm", "ai ", "technical", "architecture", "engineering", "platform", "kubernetes")),
+    ("product", ("roadmap", "product strategy", "prioritiz", "launch", "go-to-market", "metrics", "kpi", "pricing", "requirements")),
+    ("domain", ("healthcare", "fintech", "payments", "insurance", "claims", "industry", "domain", "b2b", "saas", "enterprise")),
+    ("experience", ("years", "experience", "track record")),
+]  # fmt: skip
+
+
+def guess_category(text: str) -> str:
+    """Keyword category for a requirement, used when the model didn't classify it."""
+    t = f" {text.lower()} "
+    for category, keys in _CATEGORY_KEYWORDS:
+        if any(k in t for k in keys):
+            return category
+    return "other"
+
+
+def level_from_title(title: str) -> str:
+    """Map a job title to the PM seniority ladder ('' when it isn't clear)."""
+    t = title.lower()
+    if re.search(r"\b(director|head of|vp|vice president)\b", t):
+        return "Director"
+    if re.search(r"\bprincipal\b", t):
+        return "Principal PM"
+    if re.search(r"\b(staff|lead|group)\b", t):
+        return "Staff PM"
+    if re.search(r"\b(senior|sr\.?)\b", t):
+        return "Senior PM"
+    if re.search(r"\bproduct (manager|owner)\b", t):
+        return "PM"
+    return ""

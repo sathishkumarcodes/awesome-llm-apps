@@ -46,7 +46,12 @@ class SemanticIndex:
     """Cosine-similarity search over resume lines."""
 
     def __init__(self, lines: list[DocLine]):
-        self.lines = [ln for ln in lines if ln.kind != "heading" and len(ln.text) >= 12]
+        # Headings and the contact/header block are never evidence for a requirement.
+        self.lines = [
+            ln
+            for ln in lines
+            if ln.kind != "heading" and ln.section != "header" and len(ln.text) >= 12
+        ]
         self.matrix = embed([ln.text for ln in self.lines])
 
     def search_many(self, queries: list[str], k: int = 4) -> list[list[Hit]]:
@@ -59,6 +64,12 @@ class SemanticIndex:
             idx = np.argsort(-row)[:k]
             results.append([Hit(self.lines[i].id, float(row[i])) for i in idx])
         return results
+
+    def cosine(self, queries: list[str]) -> np.ndarray:
+        """Similarity matrix (queries × indexed lines)."""
+        if not queries or not self.lines:
+            return np.zeros((len(queries), len(self.lines)), dtype=np.float32)
+        return embed(queries) @ self.matrix.T
 
     def relevance(self, line_texts: list[str], queries: list[str]) -> list[float]:
         """Max similarity of each text to any query (used to order bullets and skills)."""

@@ -1,0 +1,19 @@
+{
+  "name": "Sample resume × Staff PM, Payment Integrity",
+  "resume": "../../fixtures/sample_resume.docx",
+  "job": "../../fixtures/sample_job.txt",
+  "expect_job": { "seniority_level": "Staff PM", "min_years": 8.0 },
+  "labels": [
+    { "match": "8+ years of product management", "expect": ["demonstrated", "partial"], "note": "~10 yrs PM; B2B SaaS implied by health plan clients, not stated" },
+    { "match": "healthcare payer, claims, or payment integrity", "expect": ["demonstrated"], "note": "OR-list; payment integrity platform" },
+    { "match": "healthcare AI products with Python", "expect": ["partial"], "note": "Python APIs for healthcare data; no AI shown" },
+    { "match": "leading cross-functional teams", "expect": ["partial", "demonstrated"], "note": "engineers shown; data scientists/designers not" },
+    { "match": "machine learning model deployment", "expect": ["not_demonstrated"] },
+    { "match": "SQL proficiency", "expect": ["partial", "demonstrated"], "note": "SQL in skills; data workflows" },
+    { "match": "MBA or advanced degree", "expect": ["demonstrated"], "note": "M.S. Information Systems" },
+    { "match": "Own the product strategy and roadmap", "expect": ["demonstrated"] },
+    { "match": "Partner with engineering and executive", "expect": ["demonstrated", "partial"] },
+    { "match": "platform scalability and performance", "expect": ["demonstrated", "partial"], "note": "AWS migration cut processing time; 4 eng teams" },
+    { "match": "Lead discovery with health plan customers", "expect": ["partial", "demonstrated"], "note": "discovery with hospital admins, not health plans" }
+  ]
+}

@@ -1,0 +1,20 @@
+Data Scientist, Pricing
+Brightway Insurance
+Location: Chicago, IL
+
+Responsibilities:
+- Build and validate pricing models.
+- Design experiments and analyze results.
+- Communicate findings to actuaries and business leaders.
+- Partner with engineering to deploy models.
+
+Requirements:
+- 3+ years of experience in data science or analytics.
+- Proficiency in Python and SQL.
+- Strong statistics: regression, GLMs, experimental design.
+- Experience deploying machine learning models.
+- Master's degree in Statistics, Economics, or a related field.
+
+Preferred qualifications:
+- Insurance industry experience.
+- Experience with Spark.

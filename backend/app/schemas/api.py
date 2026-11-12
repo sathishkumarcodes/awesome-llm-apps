@@ -127,5 +127,10 @@ class ValidateRequest(BaseModel):
     change_ids: list[str] | None = None
 
 
+class ModelSelect(BaseModel):
+    provider: str = Field(min_length=1, max_length=32)
+    model: str = Field(min_length=1, max_length=128)
+
+
 class ExportRequest(BaseModel):
     format: Literal["original", "pdf", "docx"] = "original"

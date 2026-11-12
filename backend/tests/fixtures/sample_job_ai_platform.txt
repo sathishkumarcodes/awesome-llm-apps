@@ -1,0 +1,31 @@
+Senior Product Manager, AI Platform
+Northwind Data
+Location: Hybrid — Seattle, WA
+
+About Northwind Data
+Northwind Data helps enterprises put their data to work with AI.
+
+What you'll do:
+- Own the roadmap for our AI developer platform.
+- Run customer discovery with enterprise data teams.
+- Define success metrics and report on product adoption.
+- Partner with sales on go-to-market launches.
+
+Requirements:
+- 6+ years of product management experience.
+- Experience with agentic AI, LLM orchestration, RAG, or model evaluation.
+- Hands-on experience with SQL, Python, or Snowflake.
+- Experience building APIs and data integrations.
+- Bachelor's degree in Computer Science, Engineering, or a related field.
+- Experience leading cross-functional teams of engineers, designers, and data scientists.
+- Ability to travel up to 25% and work from our Seattle office three days per week.
+- Must be authorized to work in the United States without visa sponsorship.
+
+Preferred qualifications:
+- Experience in fintech, payments, or financial services.
+- PMP or CSPO certification.
+- Experience running A/B tests and experimentation programs.
+- Experience with Kubernetes and Terraform.
+
+Benefits:
+- Medical, dental, and vision coverage.

@@ -1,0 +1,20 @@
+Senior Software Engineer, Payments
+Tallyhoe
+Location: Remote
+
+What you'll do:
+- Design, build and operate payment services in Go and Python.
+- Own reliability of high-volume transaction systems.
+- Review code and mentor engineers.
+- Collaborate with product and compliance teams.
+
+Requirements:
+- 5+ years of professional software engineering experience.
+- Strong experience with Go or Python.
+- Experience with distributed systems and PostgreSQL.
+- Experience operating services on AWS with Kubernetes.
+- Bachelor's degree in Computer Science or equivalent experience.
+
+Nice to have:
+- Payments or fintech experience.
+- Experience with Kafka.

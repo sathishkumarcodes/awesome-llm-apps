@@ -1,5 +1,6 @@
 """FastAPI application entry point."""
 
+import threading
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -8,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.routes import router
+from app.api.scorecards import router as scorecard_router
 from app.core.config import get_settings
 from app.core.errors import AppError
 from app.core.logging import configure_logging, get_logger
@@ -26,7 +28,21 @@ async def lifespan(_app: FastAPI):
     with SessionLocal() as db:
         mark_interrupted(db)
         mark_versions_interrupted(db)
+        from app.services.scorecard_service import mark_interrupted as mark_scorecards_interrupted
+
+        mark_scorecards_interrupted(db)
+    # Load the embedding model in the background so the first analysis doesn't pay ~20s for it.
+    threading.Thread(target=_warm_embeddings, name="warm-embeddings", daemon=True).start()
     yield
+
+
+def _warm_embeddings() -> None:
+    from app.scoring.semantic import embed
+
+    try:
+        embed(["warm up"])
+    except Exception:
+        log.exception("embedding warm-up failed; it will load on first use")
 
 
 app = FastAPI(title="JobMatchAI", version="0.1.0", lifespan=lifespan)
@@ -37,6 +53,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(router)
+app.include_router(scorecard_router)
 
 
 @app.exception_handler(AppError)

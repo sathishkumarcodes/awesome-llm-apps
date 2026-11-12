@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.core.errors import AppError, NotFoundError
 from app.db.session import get_db
-from app.llm.provider import get_provider
+from app.llm import provider as llm
 from app.models import Job, MatchAnalysis, Resume, ResumeVersion
 from app.schemas import api
 from app.schemas.analysis import DECISION_LABELS, EvaluatorResult, MatchResult
@@ -110,12 +110,35 @@ def version_detail(v: ResumeVersion) -> api.VersionDetail:
 @router.get("/health")
 def health() -> dict:
     s = get_settings()
+    choice = llm.get_active_choice()
+    try:
+        status = llm.get_provider().health()
+    except AppError as exc:
+        status = {
+            "provider": choice.provider,
+            "reachable": False,
+            "model": choice.model,
+            "error": exc.message,
+        }
+    status["local"] = llm.PROVIDERS[choice.provider].local
     return {
         "status": "ok",
-        "llm": get_provider().health(),
+        "llm": status,
         "embedding_model": s.embedding_model,
         "max_upload_mb": s.max_upload_mb,
     }
+
+
+# --- model selection -----------------------------------------------------------
+@router.get("/llm/models")
+def list_models(refresh: bool = False) -> dict:
+    return llm.list_models(refresh)
+
+
+@router.put("/llm/active")
+def set_active_model(body: api.ModelSelect) -> dict:
+    llm.set_active_choice(body.provider, body.model)
+    return llm.list_models()
 
 
 # --- resumes -----------------------------------------------------------------
@@ -185,6 +208,11 @@ async def upload_job(
     return _job_detail(job_service.create_job(db, text, company, title))
 
 
+@router.post("/jobs/{job_id}/reparse", response_model=api.JobDetail)
+def reparse_job(job_id: str, db: Session = Depends(get_db)):
+    return _job_detail(job_service.reparse_job(db, job_id))
+
+
 @router.get("/jobs", response_model=list[api.JobSummary])
 def list_jobs(db: Session = Depends(get_db)):
     return [job_summary(j) for j in job_service.list_jobs(db)]
@@ -200,6 +228,12 @@ def get_job(job_id: str, db: Session = Depends(get_db)):
 def create_match(body: api.MatchCreate, db: Session = Depends(get_db)):
     m = match_service.create_match(db, body.resume_id, body.job_id)
     return get_match(m.id, db)
+
+
+@router.post("/matches/{match_id}/rerun", response_model=api.MatchDetail, status_code=202)
+def rerun_match(match_id: str, db: Session = Depends(get_db)):
+    match_service.rerun_match(db, match_id)
+    return get_match(match_id, db)
 
 
 @router.get("/matches", response_model=list[api.MatchSummary])
@@ -245,6 +279,13 @@ def list_versions(db: Session = Depends(get_db)):
 @router.get("/resume-versions/{version_id}", response_model=api.VersionDetail)
 def get_version(version_id: str, db: Session = Depends(get_db)):
     return version_detail(tailoring_service.get_version(db, version_id))
+
+
+@router.post(
+    "/resume-versions/{version_id}/rerun", response_model=api.VersionDetail, status_code=202
+)
+def rerun_version(version_id: str, db: Session = Depends(get_db)):
+    return version_detail(tailoring_service.rerun_version(db, version_id))
 
 
 @router.patch("/resume-versions/{version_id}/changes/{change_id}", response_model=api.VersionDetail)
